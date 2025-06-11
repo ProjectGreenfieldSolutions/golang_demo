@@ -5,6 +5,8 @@
     <title>{{ .title }}</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="icon" type="image/x-icon" href="/static/favicon.png">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
     <div class="container">
@@ -13,10 +15,12 @@
 	<p>I am a software engineer with nearly a decade of experience delivering enterprise-grade solutions across the financial and manufacturing sectors. My background includes designing and implementing high-speed, globally scalable transactional systems that meet the demands of modern infrastructure.</p>
 <p>The project showcased here was developed and deployed in under half a day. It is built in Go and hosted on AWS, reflecting my ability to deliver performant and cloud-native solutions rapidly.</p>
 <p>You can reach out to me directly via <a href="https://www.linkedin.com/in/jacobstorer/" target="_blank">LinkedIN</a></p>
+<button class="toggle-button" onclick="toggleDarkMode()">Toggle Dark Mode</button>
     </div>
     <div class="flights-container">
         <h1>Top 20 Flights around the Detriot area</h1>
 	<button onclick="window.location.reload()">Refresh Flight information</button>
+	<p>Due to Opensky's API credit system, I've removed auto-refreshing to a toggle button to perform the API calls.</p>
         <table>
             <thead>
                 <tr>
@@ -39,6 +43,47 @@
             {{ end }}
             </tbody>
         </table>
+	<div id="map" style="height: 500px; max-width: 800px; margin: 2em auto;"></div>
     </div>
 </body>
+<script>
+function toggleDarkMode() {
+    const isDark = document.body.classList.toggle("dark-mode");
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+}
+
+(function () {
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark") {
+        document.body.classList.add("dark-mode");
+    }
+})();
+  const map = L.map('map').fitBounds([[40.0, -85.5], [44.5, -80.5]]);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  const flights = [
+    {{- range .flights }}
+      {
+        callsign: "{{ .Callsign }}",
+        origin: "{{ .OriginCountry }}",
+        altitude: {{ printf "%.0f" .Altitude }},
+        lat: {{ printf "%.5f" .Latitude }},
+        lng: {{ printf "%.5f" .Longitude }}
+      },
+    {{- end }}
+  ];
+
+  flights.forEach(f => {
+    if (!f.lat || !f.lng) return;
+    const marker = L.marker([f.lat, f.lng]).addTo(map);
+    marker.bindPopup(`
+      <strong>${f.callsign || "Unknown"}</strong><br/>
+      Altitude: ${f.altitude} m<br/>
+      Country: ${f.origin}
+    `);
+  });
+</script>
+
 </html>

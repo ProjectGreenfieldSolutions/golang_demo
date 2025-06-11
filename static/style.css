@@ -1,3 +1,15 @@
+@keyframes pulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.05); }
+}
+
+@keyframes fadeSlideIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #f2f3f7;
@@ -6,34 +18,48 @@ body {
     padding: 0;
 }
 
-.container {
-    margin: 100px auto;
-    max-width: 600px;
-    text-align: center;
-    padding: 30px;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+a {
+    color: inherit;
 }
 
+button {
+    background: #ccc;
+    color: #000;
+    padding: 0.5em 1em;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    animation: pulse 1s infinite alternate;
+}
+
+/* Shared card-like containers */
+.container,
 .flights-container {
     margin: 2em auto;
     padding: 2em;
-    max-width: 800px;
     background: white;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    max-width: 95%;
+    box-sizing: border-box;
 }
 
-.flights-container h1 {
-    margin-bottom: 1em;
+.container {
+    text-align: center;
 }
 
+/* Table styling */
 .flights-container table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 0.95rem;
 }
 
-.flights-container th, .flights-container td {
+.flights-container th,
+.flights-container td {
     text-align: left;
     padding: 0.5em;
     border-bottom: 1px solid #ccc;
@@ -42,3 +68,80 @@ body {
 .flights-container th {
     background-color: #e5e7eb;
 }
+
+.flights-container tbody tr {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeSlideIn 0.6s ease forwards;
+}
+
+.flights-container tbody tr:nth-child(odd) {
+    animation-delay: 0.05s;
+}
+.flights-container tbody tr:nth-child(even) {
+    animation-delay: 0.1s;
+}
+
+/* Headings */
+.flights-container h1 {
+    margin-bottom: 1em;
+    font-size: 1.6rem;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+    .container,
+    .flights-container {
+        padding: 1em;
+    }
+
+    .flights-container table,
+    .flights-container th,
+    .flights-container td {
+        font-size: 0.85rem;
+    }
+
+    .flights-container h1 {
+        font-size: 1.4rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .flights-container table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .flights-container h1 {
+        font-size: 1.2rem;
+    }
+}
+
+/* Dark mode overrides */
+body.dark-mode {
+    background: #121212;
+    color: #eee;
+}
+
+.dark-mode .container,
+.dark-mode .flights-container {
+    background: #1e1e1e;
+    color: #ddd;
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .flights-container th {
+    background-color: #2a2a2a;
+}
+
+.dark-mode .flights-container td {
+    border-color: #444;
+}
+
+
+body.dark-mode button {
+    background: #444;
+    color: #fff;
+}
+
