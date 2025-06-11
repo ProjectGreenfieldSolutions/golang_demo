@@ -79,7 +79,6 @@ function toggleDarkMode() {
 flights.forEach(f => {
   if (!f.lat || !f.lng) return;
 
-  // Build a rotated plane icon using divIcon
   const icon = L.divIcon({
     className: 'plane-icon',
     html: `<div class="plane-emoji" data-heading="${f.heading || 0}">✈️</div>`,
@@ -87,22 +86,15 @@ flights.forEach(f => {
     iconAnchor: [10, 10]
   });
 
-  const marker = L.marker([f.lat, f.lng], {
-    icon: icon
-  }).addTo(map);
+  const marker = L.marker([f.lat, f.lng], { icon }).addTo(map);
 
-  const el = marker.getElement();
-  if (el) {
-    el.setAttribute("data-heading", f.heading || 0);
-    el.style.transform = `translate(-10px, -10px) rotate(${f.heading || 0}deg)`;
-  }
-
-  marker.bindPopup(`
-    <strong>${f.callsign || "Unknown"}</strong><br/>
-    Altitude: ${f.altitude} m<br/>
-    Heading: ${f.heading}&deg;<br/>
-    Country: ${f.origin}
-  `);
+  // Wait for DOM to be ready
+  marker.on('add', () => {
+    const el = marker.getElement()?.querySelector('.plane-emoji');
+    if (el) {
+      el.style.transform = `rotate(${f.heading || 0}deg)`;
+    }
+  });
 });
 
 function applyRotations() {
@@ -118,7 +110,9 @@ function applyRotations() {
 map.on('zoomend moveend layeradd', applyRotations);
 
 // Initial call (small delay to ensure DOM ready)
-setTimeout(applyRotations, 100);
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(applyRotations, 50);
+});
 </script>
 
 </html>
