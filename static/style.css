@@ -35,6 +35,12 @@ button:hover {
     animation: pulse 1s infinite alternate;
 }
 
+.plane-icon {
+  font-size: 1.2rem;
+  transform-origin: center center;
+  transition: transform 0.3s ease-in-out;
+}
+
 /* Shared card-like containers */
 .container,
 .flights-container {

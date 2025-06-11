@@ -70,20 +70,38 @@ function toggleDarkMode() {
         origin: "{{ .OriginCountry }}",
         altitude: {{ printf "%.0f" .Altitude }},
         lat: {{ printf "%.5f" .Latitude }},
-        lng: {{ printf "%.5f" .Longitude }}
+        lng: {{ printf "%.5f" .Longitude }},
+        heading: {{ printf "%.1f" .Heading }}
       },
     {{- end }}
   ];
 
-  flights.forEach(f => {
-    if (!f.lat || !f.lng) return;
-    const marker = L.marker([f.lat, f.lng]).addTo(map);
-    marker.bindPopup(`
-      <strong>${f.callsign || "Unknown"}</strong><br/>
-      Altitude: ${f.altitude} m<br/>
-      Country: ${f.origin}
-    `);
+flights.forEach(f => {
+  if (!f.lat || !f.lng) return;
+
+  // Build a rotated plane icon using divIcon
+  const icon = L.divIcon({
+    className: 'plane-icon',
+    html: '✈️',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
   });
+
+  const marker = L.marker([f.lat, f.lng], {
+    icon: icon,
+    rotationAngle: f.heading || 0,
+    rotationOrigin: 'center center'
+  }).addTo(map);
+
+  marker.getElement().style.transform += ` rotate(${f.heading || 0}deg)`;
+
+  marker.bindPopup(`
+    <strong>${f.callsign || "Unknown"}</strong><br/>
+    Altitude: ${f.altitude} m<br/>
+    Heading: ${f.heading}&deg;<br/>
+    Country: ${f.origin}
+  `);
+});
 </script>
 
 </html>
