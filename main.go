@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"log"
 )
 
 func main() {
@@ -18,6 +19,7 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		flights, err := FetchFlights()
 		if err != nil {
+			log.Printf("❌ Error fetching flights: %v", err)
 			c.HTML(http.StatusInternalServerError, "index.html", gin.H{
 				"title":   "Flight Tracker",
 				"message": "Failed to load flights",

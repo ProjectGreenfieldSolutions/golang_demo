@@ -1,12 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"io"
+	"golang.org/x/oauth2/clientcredentials"
 )
+var clientID = "greenfieldsolutions-api-client"
+var clientSecret = "2VFU8aStjx7xa1yfUaDD299hGN64t2vd"
 
-const OpenSkyURL = "https://opensky-network.org/api/states/all"
+const OpenSkyURL = "https://opensky-network.org/api/states/all?lamin=40.0&lamax=44.5&lomin=-85.5&lomax=-80.5"
 
 type StateVectorResponse struct {
 	Time   int64           `json:"time"`
@@ -29,11 +35,32 @@ type Flight struct {
 }
 
 func FetchFlights() ([]Flight, error) {
-	resp, err := http.Get(OpenSkyURL)
-	if err != nil {
-		return nil, err
+	cfg := clientcredentials.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		TokenURL:     "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token",
 	}
-	defer resp.Body.Close()
+
+	
+    	ctx := context.Background()
+
+    	token, err := cfg.Token(ctx)
+    	if err != nil {
+		log.Fatalf("❌ Failed to get token: %v", err)
+        	return nil, fmt.Errorf("token fetch failed: %v", err)
+    	}
+
+    	client := cfg.Client(ctx)
+    	resp, err := client.Get(OpenSkyURL)
+    	if err != nil {
+        	return nil, err
+    	}
+    	defer resp.Body.Close()
+
+    	if resp.StatusCode != http.StatusOK {
+        	body, _ := io.ReadAll(resp.Body)
+        	return nil, fmt.Errorf("status %d, body: %s", resp.StatusCode, string(body))
+    	}
 
 	var data StateVectorResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -57,6 +84,7 @@ func FetchFlights() ([]Flight, error) {
 			VerticalRate:  toFloat64(s[11]),
 		})
 	}
+	log.Println("✅ Fetched flight data with OAuth2")
 	return flights, nil
 }
 
