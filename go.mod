@@ -1,6 +1,6 @@
 module github.com/ProjectGreenfieldSolutions/golang_demo
 
-go 1.24.4
+go 1.24.3
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect
