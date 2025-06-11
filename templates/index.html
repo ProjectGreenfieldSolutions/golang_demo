@@ -82,7 +82,7 @@ flights.forEach(f => {
   // Build a rotated plane icon using divIcon
   const icon = L.divIcon({
     className: 'plane-icon',
-    html: '✈️',
+    html: `<div class="plane-emoji" data-heading="${f.heading || 0}">✈️</div>`,
     iconSize: [20, 20],
     iconAnchor: [10, 10]
   });
@@ -94,7 +94,7 @@ flights.forEach(f => {
   const el = marker.getElement();
   if (el) {
     el.setAttribute("data-heading", f.heading || 0);
-    el.style.transform += ` rotate(${f.heading || 0}deg)`;
+    el.style.transform = `translate(-10px, -10px) rotate(${f.heading || 0}deg)`;
   }
 
   marker.bindPopup(`
@@ -106,10 +106,10 @@ flights.forEach(f => {
 });
 
 function applyRotations() {
-  document.querySelectorAll('.leaflet-marker-icon.plane-icon').forEach(marker => {
-    const heading = marker.getAttribute('data-heading');
+  document.querySelectorAll('.plane-emoji').forEach(el => {
+    const heading = el.getAttribute('data-heading');
     if (heading !== null) {
-      marker.style.transform += ` rotate(${heading}deg)`;
+      el.style.transform = `rotate(${heading}deg)`;
     }
   });
 }
