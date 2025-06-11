@@ -88,6 +88,13 @@ flights.forEach(f => {
 
   const marker = L.marker([f.lat, f.lng], { icon }).addTo(map);
 
+  marker.bindPopup(`
+    <strong>${f.callsign || "Unknown"}</strong><br/>
+    Altitude: ${f.altitude} m<br/>
+    Heading: ${f.heading}&deg;<br/>
+    Country: ${f.origin}
+  `);
+
   // Wait for DOM to be ready
   marker.on('add', () => {
     const el = marker.getElement()?.querySelector('.plane-emoji');
