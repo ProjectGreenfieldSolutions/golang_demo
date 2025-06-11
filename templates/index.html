@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ .title }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.png">
+    <meta http-equiv="refresh" content="10">
+</head>
+<body>
+    <div class="container">
+        <h1>{{ .message }}</h1>
+	<h3>Greetings AirSpace Link</h3>
+	<p>I am software engineer with nearly a decade of professional work history performing enterprise level work. From financial and manufacturing industries, I bring with me a wealth of high speed transactional architecture that demanded scalability to a global level.</p>
+	<p>This project you're viewing right here took me less than half of a morning to setup. It is written in GO and hosted on AWS.</p>
+	<p>You can reach out to me directly via <a href="https://www.linkedin.com/in/jacobstorer/" target="_blank">LinkedIN</a></p>
+    </div>
+    <div class="flights-container">
+        <h1>Top 20 Flights in real-time</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Callsign</th>
+                    <th>Country</th>
+                    <th>Altitude</th>
+                    <th>Lat</th>
+                    <th>Lng</th>
+                </tr>
+            </thead>
+            <tbody>
+            {{ range .flights }}
+                <tr>
+                    <td>{{ .Callsign }}</td>
+                    <td>{{ .OriginCountry }}</td>
+                    <td>{{ printf "%.0f" .Altitude }}</td>
+                    <td>{{ printf "%.2f" .Latitude }}</td>
+                    <td>{{ printf "%.2f" .Longitude }}</td>
+                </tr>
+            {{ end }}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

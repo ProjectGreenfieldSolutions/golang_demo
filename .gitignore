@@ -1,0 +1,17 @@
+# Binaries
+golang_demo
+*.exe
+*.out
+*.test
+
+# Vendor
+/vendor/
+
+# IDE/Editor files
+.idea/
+.vscode/
+.DS_Store
+
+
+# Air
+.air.toml

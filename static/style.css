@@ -1,0 +1,44 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f2f3f7;
+    color: #333;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    margin: 100px auto;
+    max-width: 600px;
+    text-align: center;
+    padding: 30px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.flights-container {
+    margin: 2em auto;
+    padding: 2em;
+    max-width: 800px;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.flights-container h1 {
+    margin-bottom: 1em;
+}
+
+.flights-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.flights-container th, .flights-container td {
+    text-align: left;
+    padding: 0.5em;
+    border-bottom: 1px solid #ccc;
+}
+
+.flights-container th {
+    background-color: #e5e7eb;
+}
