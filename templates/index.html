@@ -19,7 +19,6 @@
     </div>
     <div class="flights-container">
         <h1>Top 20 Flights around the Detriot area</h1>
-	<button onclick="window.location.reload()">Refresh Flight information</button>
 	<p>Due to Opensky's API credit system, I've removed auto-refreshing to a toggle button to perform the API calls.</p>
         <table>
             <thead>
@@ -43,6 +42,7 @@
             {{ end }}
             </tbody>
         </table>
+	<button onclick="window.location.reload()">Refresh Flight information</button>
 	<div id="map" style="height: 500px; max-width: 800px; margin: 2em auto;"></div>
     </div>
 </body>
@@ -88,12 +88,14 @@ flights.forEach(f => {
   });
 
   const marker = L.marker([f.lat, f.lng], {
-    icon: icon,
-    rotationAngle: f.heading || 0,
-    rotationOrigin: 'center center'
+    icon: icon
   }).addTo(map);
 
-  marker.getElement().style.transform += ` rotate(${f.heading || 0}deg)`;
+  const el = marker.getElement();
+  if (el) {
+    el.setAttribute("data-heading", f.heading || 0);
+    el.style.transform += ` rotate(${f.heading || 0}deg)`;
+  }
 
   marker.bindPopup(`
     <strong>${f.callsign || "Unknown"}</strong><br/>
@@ -102,6 +104,21 @@ flights.forEach(f => {
     Country: ${f.origin}
   `);
 });
+
+function applyRotations() {
+  document.querySelectorAll('.leaflet-marker-icon.plane-icon').forEach(marker => {
+    const heading = marker.getAttribute('data-heading');
+    if (heading !== null) {
+      marker.style.transform += ` rotate(${heading}deg)`;
+    }
+  });
+}
+
+// Re-apply rotation on map events
+map.on('zoomend moveend layeradd', applyRotations);
+
+// Initial call (small delay to ensure DOM ready)
+setTimeout(applyRotations, 100);
 </script>
 
 </html>
