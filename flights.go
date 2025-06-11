@@ -49,6 +49,7 @@ func FetchFlights() ([]Flight, error) {
 		log.Fatalf("❌ Failed to get token: %v", err)
         	return nil, fmt.Errorf("token fetch failed: %v", err)
     	}
+	log.Printf(token)
 
     	client := cfg.Client(ctx)
     	resp, err := client.Get(OpenSkyURL)
