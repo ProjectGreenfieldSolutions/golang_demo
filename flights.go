@@ -12,7 +12,6 @@ import (
 	"time"
 )
 
-
 type StateVectorResponse struct {
 	Time   int64           `json:"time"`
 	States [][]interface{} `json:"states"`

@@ -4,41 +4,76 @@ import (
 	"context"
 	"fmt"
 	"github.com/ProjectGreenfieldSolutions/golang_demo/models"
+	"strings"
 	"time"
 )
 
-func SaveFlightToDB(f models.Flight) error {
-	if f.Latitude == 0 && f.Longitude == 0 {
-		return nil
-	}
-
-	query := `
-		INSERT INTO flights (
-			icao24, callsign, origin_country, time_position,
-			lat, lng, altitude, heading
-		) VALUES ($1, $2, $3, to_timestamp($4), $5, $6, $7, $8)
-	`
+// Test to see if the database has recently refreshed the data
+func HasRecentFlightData(threshold time.Duration) (bool, error) {
+	query := `SELECT created_at FROM flights ORDER BY created_at DESC LIMIT 1`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	_, err := DB.Exec(ctx, query,
-		f.ICAO24,
-		f.Callsign,
-		f.OriginCountry,
-		float64(f.TimePosition.Unix()),
-		f.Latitude,
-		f.Longitude,
-		f.Altitude,
-		f.Heading,
+	var last time.Time
+	err := DB.QueryRow(ctx, query).Scan(&last)
+	if err != nil {
+		return false, nil // No data means we should fetch
+	}
+
+	return time.Since(last) < threshold, nil
+}
+
+func SaveFlightsBatch(flights []models.Flight) error {
+	if len(flights) == 0 {
+		return nil
+	}
+
+	var (
+		valueStrings []string
+		valueArgs    []interface{}
 	)
 
+	for i, f := range flights {
+		if f.Latitude == 0 && f.Longitude == 0 {
+			continue
+		}
+		// (idx*8)+1 to offset placeholders per record
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d,$%d,to_timestamp($%d),$%d,$%d,$%d,$%d)",
+			i*8+1, i*8+2, i*8+3, i*8+4, i*8+5, i*8+6, i*8+7, i*8+8))
+
+		valueArgs = append(valueArgs,
+			f.ICAO24,
+			f.Callsign,
+			f.OriginCountry,
+			float64(f.TimePosition.Unix()),
+			f.Latitude,
+			f.Longitude,
+			f.Altitude,
+			f.Heading,
+		)
+	}
+
+	if len(valueArgs) == 0 {
+		return nil
+	}
+
+	query := fmt.Sprintf(`
+		INSERT INTO flights (
+			icao24, callsign, origin_country, time_position,
+			lat, lng, altitude, heading
+		) VALUES %s`, strings.Join(valueStrings, ","))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := DB.Exec(ctx, query, valueArgs...)
 	if err != nil {
-		fmt.Printf("❌ DB insert failed for %s: %v\n", f.ICAO24, err)
+		fmt.Printf("❌ Batch insert failed: %v\n", err)
 		return err
 	}
 
-	fmt.Printf("📡 Saved flight %s to DB\n", f.ICAO24)
+	fmt.Printf("✅ Saved %d flights to DB\n", len(flights))
 	return nil
 }
 

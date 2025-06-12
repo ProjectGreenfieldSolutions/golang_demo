@@ -41,98 +41,92 @@ func main() {
 	// Serve static files
 	r.Static("/static", "./static")
 
+	startFlightFetcher(5 * 60 * time.Second)
+
 	// Home route
 	r.GET("/", func(c *gin.Context) {
-		flights, err := FetchFlights()
+		since := time.Now().Add(-1 * time.Hour)
+	
+		query := `
+		SELECT DISTINCT ON (callsign) id, icao24, callsign, origin_country, time_position,
+			   lat, lng, altitude, heading, created_at
+		FROM flights
+		WHERE time_position >= $1
+		ORDER BY callsign, time_position DESC
+		`
+	
+		rows, err := db.DB.Query(context.Background(), query, since)
 		if err != nil {
-			fmt.Printf("❌ Error fetching flights: %v", err)
+			fmt.Printf("❌ Error querying flights: %v\n", err)
 			c.HTML(http.StatusInternalServerError, "index.html", gin.H{
 				"title":   "Flight Tracker",
-				"message": "Failed to load flights",
+				"message": "Failed to load stored flights",
 				"flights": nil,
 			})
 			return
 		}
-
-		// TODO - Batch insert version here
-		for _, flight := range flights {
-			_ = db.SaveFlightToDB(convertToStored(flight))
+		defer rows.Close()
+	
+		var flights []models.Flight
+		for rows.Next() {
+			var f models.Flight
+			err := rows.Scan(
+				&f.ID, &f.ICAO24, &f.Callsign, &f.OriginCountry,
+				&f.TimePosition, &f.Latitude, &f.Longitude,
+				&f.Altitude, &f.Heading, &f.CreatedAt,
+			)
+			if err == nil {
+				flights = append(flights, f)
+			}
 		}
-
+	
 		c.HTML(http.StatusOK, "index.html", gin.H{
 			"title":   "Flight Tracker",
-			"message": "Live flights from OpenSky API",
+			"message": "Live flights (past 60 minutes)",
 			"flights": flights,
 		})
 	})
 
-	// API endpoint to return flights from DB
-	r.GET("/flights", func(c *gin.Context) {
-		sinceStr := c.Query("since")
-		untilStr := c.Query("until")
-		limitStr := c.Query("limit")
-	
-		var (
-			since = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-			until = time.Now().Add(24 * time.Hour)
-			limit = 50
-			err   error
-		)
-	
-		if limitStr != "" {
-			limit, err = strconv.Atoi(limitStr)
-			if err != nil || limit <= 0 {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid 'limit' amount"})
-				return
-			}
-		}
-	
-		if sinceStr != "" {
-			since, err = time.Parse(time.RFC3339, sinceStr)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid 'since' time"})
-				return
-			}
-		}
-	
-		if untilStr != "" {
-			until, err = time.Parse(time.RFC3339, untilStr)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid 'until' time"})
-				return
-			}
-		}
-	
-		query := `
-		SELECT id, icao24, callsign, origin_country, time_position,
-			   lat, lng, altitude, heading, created_at
-		FROM flights
-		WHERE time_position >= $2 AND time_position <= $3
-		ORDER BY time_position DESC
-		LIMIT $1
-		`
-	
-		rows, err := db.DB.Query(context.Background(), query, limit, since, until)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "query failed"})
-			return
-		}
-		defer rows.Close()
-	
-		var results []models.Flight
-		for rows.Next() {
-			var f models.Flight
-			if err := rows.Scan(
-				&f.ID, &f.ICAO24, &f.Callsign, &f.OriginCountry,
-				&f.TimePosition, &f.Latitude, &f.Longitude,
-				&f.Altitude, &f.Heading, &f.CreatedAt,
-			); err == nil {
-				results = append(results, f)
-			}
-		}
-		c.JSON(http.StatusOK, results)
-	})
-	
-
 	r.Run(":80")
+}
+
+func startFlightFetcher(interval time.Duration) {
+	go func() {
+		for {
+			if shouldSkipFetch(interval) {
+				fmt.Println("⏳ Recent data found — skipping API fetch.")
+			} else {
+				fetchAndStoreFlights()
+			}
+			time.Sleep(interval)
+		}
+	}()
+}
+
+func shouldSkipFetch(maxAge time.Duration) bool {
+	var recent time.Time
+	err := db.DB.QueryRow(context.Background(), "SELECT MAX(created_at) FROM flights").Scan(&recent)
+	if err != nil {
+		fmt.Printf("⚠️ Could not check for recent data: %v\n", err)
+		return false
+	}
+	return time.Since(recent) < maxAge
+}
+
+func fetchAndStoreFlights() {
+	flights, err := FetchFlights()
+	if err != nil {
+		fmt.Printf("❌ Fetch failed: %v\n", err)
+		return
+	}
+
+	var stored []models.Flight
+	for _, f := range flights {
+		stored = append(stored, convertToStored(f))
+	}
+	if err := db.SaveFlightsBatch(stored); err != nil {
+		fmt.Printf("❌ Batch insert failed: %v\n", err)
+		return
+	}
+	fmt.Printf("📦 Stored %d flights\n", len(stored))
 }
