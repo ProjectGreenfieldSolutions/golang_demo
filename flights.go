@@ -4,65 +4,78 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
-	"io"
+	"github.com/ProjectGreenfieldSolutions/golang_demo/models"
 	"golang.org/x/oauth2/clientcredentials"
+	"io"
+	"net/http"
+	"os"
+	"strings"
+	"time"
 )
-const clientID := os.Getenv("OPEN_SKY_CLIENT_ID")
-const clientSecret := os.Getenv("OPEN_SKY_CLIENT_SECRET") 
-const OpenSkyURL := os.Getenv("OPEN_SKY_COORDINATES")
+
+var clientID = strings.TrimSpace(os.Getenv("OPEN_SKY_CLIENT_ID"))
+var clientSecret = strings.TrimSpace(os.Getenv("OPEN_SKY_CLIENT_SECRET"))
+var OpenSkyURL = strings.TrimSpace(os.Getenv("OPEN_SKY_COORDINATES"))
 
 type StateVectorResponse struct {
 	Time   int64           `json:"time"`
 	States [][]interface{} `json:"states"`
 }
 
-type Flight struct {
-	ICAO24        string  `json:"icao24"`
-	Callsign      string  `json:"callsign"`
-	OriginCountry string  `json:"origin_country"`
-	TimePosition  int64   `json:"time_position"`
-	LastContact   int64   `json:"last_contact"`
-	Longitude     float64 `json:"longitude"`
-	Latitude      float64 `json:"latitude"`
-	Altitude      float64 `json:"altitude"`
-	OnGround      bool    `json:"on_ground"`
-	Velocity      float64 `json:"velocity"`
-	Heading       float64 `json:"heading"`
-	VerticalRate  float64 `json:"vertical_rate"`
-}
-
-func FetchFlights() ([]Flight, error) {
+func FetchFlights() ([]models.OpenSkyFlight, error) {
 	cfg := clientcredentials.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		TokenURL:     "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token",
 	}
 
-	
-    	ctx := context.Background()
+	if clientID == "" || clientSecret == "" {
+		fmt.Printf("❌ Missing client credentials. ID: %s Secret: %s", clientID, clientSecret)
+	}
 
-    	client := cfg.Client(ctx)
-    	resp, err := client.Get(OpenSkyURL)
-    	if err != nil {
-        	return nil, err
-    	}
-    	defer resp.Body.Close()
+	ctx := context.Background()
 
-    	if resp.StatusCode != http.StatusOK {
-        	body, _ := io.ReadAll(resp.Body)
-        	return nil, fmt.Errorf("status %d, body: %s", resp.StatusCode, string(body))
-    	}
+	client := cfg.Client(ctx)
+
+	resp, err := client.Get(OpenSkyURL)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Printf("❌ OpenSky API failed — status %d, body: %s", resp.StatusCode, string(body))
+
+		return []models.OpenSkyFlight{
+			{
+				ICAO24:        "no_data",
+				Callsign:      "API_ERROR",
+				OriginCountry: "Unavailable",
+				TimePosition:  time.Now().Unix(),
+				LastContact:   time.Now().Unix(),
+				Longitude:     0.0,
+				Latitude:      0.0,
+				Altitude:      0.0,
+				OnGround:      true,
+				Velocity:      0.0,
+				Heading:       0.0,
+				VerticalRate:  0.0,
+			},
+		}, nil
+	}
 
 	var data StateVectorResponse
+
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, err
 	}
 
-	flights := make([]Flight, 0, len(data.States))
+	flights := make([]models.OpenSkyFlight, 0, len(data.States))
 	for _, s := range data.States {
-		flights = append(flights, Flight{
+		flights = append(flights, models.OpenSkyFlight{
 			ICAO24:        toStr(s[0]),
 			Callsign:      toStr(s[1]),
 			OriginCountry: toStr(s[2]),
@@ -77,13 +90,61 @@ func FetchFlights() ([]Flight, error) {
 			VerticalRate:  toFloat64(s[11]),
 		})
 	}
-	log.Println("✅ Fetched flight data with OAuth2")
+	fmt.Println("✅ Fetched flight data with OAuth2")
 	return flights, nil
 }
 
-// Helpers
-func toStr(v interface{}) string     { if v == nil { return "" }; return fmt.Sprintf("%v", v) }
-func toInt64(v interface{}) int64    { if v == nil { return 0 }; return int64(v.(float64)) }
-func toFloat64(v interface{}) float64 { if v == nil { return 0 }; return v.(float64) }
-func toBool(v interface{}) bool      { if v == nil { return false }; return v.(bool) }
+func convertToStored(f models.OpenSkyFlight) models.Flight {
+	return models.Flight{
+		ICAO24:        f.ICAO24,
+		Callsign:      f.Callsign,
+		OriginCountry: f.OriginCountry,
+		TimePosition:  f.TimePosition,
+		Latitude:      f.Latitude,
+		Longitude:     f.Longitude,
+		Altitude:      f.Altitude,
+		Heading:       f.Heading,
+	}
+}
 
+func toStr(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	s := fmt.Sprintf("%v", v)
+	fmt.Printf("❌ toStr: %s", s)
+	return s
+}
+
+func toInt64(v interface{}) int64 {
+	if v == nil {
+		return 0
+	}
+	if f, ok := v.(float64); ok {
+		return int64(f)
+	}
+	fmt.Printf("❌ toInt64: unexpected type %T", v)
+	return 0
+}
+
+func toFloat64(v interface{}) float64 {
+	if v == nil {
+		return 0
+	}
+	if f, ok := v.(float64); ok {
+		return f
+	}
+	fmt.Printf("❌ toFloat64: unexpected type %T", v)
+	return 0
+}
+
+func toBool(v interface{}) bool {
+	if v == nil {
+		return false
+	}
+	if b, ok := v.(bool); ok {
+		return b
+	}
+	fmt.Printf("❌ toBool: unexpected type %T", v)
+	return false
+}
