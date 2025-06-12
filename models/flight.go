@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type OpenSkyFlight struct {
 	ICAO24        string  `json:"icao24"`
 	Callsign      string  `json:"callsign"`
@@ -16,12 +18,14 @@ type OpenSkyFlight struct {
 }
 
 type Flight struct {
-	ICAO24        string
-	Callsign      string
-	OriginCountry string
-	TimePosition  int64
-	Latitude      float64
-	Longitude     float64
-	Altitude      float64
-	Heading       float64
+	ID            int       `json:"id"`
+	ICAO24        string    `json:"icao24"`
+	Callsign      string    `json:"callsign"`
+	OriginCountry string    `json:"origin_country"`
+	TimePosition  time.Time `json:"time_position"`
+	Latitude      float64   `json:"latitude"`
+	Longitude     float64   `json:"longitude"`
+	Altitude      float64   `json:"altitude"`
+	Heading       float64   `json:"heading"`
+	CreatedAt     time.Time `json:"created_at"`
 }

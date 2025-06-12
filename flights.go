@@ -9,13 +9,9 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 )
 
-var clientID = strings.TrimSpace(os.Getenv("OPEN_SKY_CLIENT_ID"))
-var clientSecret = strings.TrimSpace(os.Getenv("OPEN_SKY_CLIENT_SECRET"))
-var OpenSkyURL = strings.TrimSpace(os.Getenv("OPEN_SKY_COORDINATES"))
 
 type StateVectorResponse struct {
 	Time   int64           `json:"time"`
@@ -23,21 +19,18 @@ type StateVectorResponse struct {
 }
 
 func FetchFlights() ([]models.OpenSkyFlight, error) {
-	cfg := clientcredentials.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		TokenURL:     "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token",
-	}
 
-	if clientID == "" || clientSecret == "" {
-		fmt.Printf("❌ Missing client credentials. ID: %s Secret: %s", clientID, clientSecret)
+	cfg := clientcredentials.Config{
+		ClientID:     os.Getenv("OPEN_SKY_CLIENT_ID"),
+		ClientSecret: os.Getenv("OPEN_SKY_CLIENT_SECRET"),
+		TokenURL:     "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token",
 	}
 
 	ctx := context.Background()
 
 	client := cfg.Client(ctx)
 
-	resp, err := client.Get(OpenSkyURL)
+	resp, err := client.Get(os.Getenv("OPEN_SKY_COORDINATES"))
 
 	if err != nil {
 		return nil, err
@@ -99,7 +92,7 @@ func convertToStored(f models.OpenSkyFlight) models.Flight {
 		ICAO24:        f.ICAO24,
 		Callsign:      f.Callsign,
 		OriginCountry: f.OriginCountry,
-		TimePosition:  f.TimePosition,
+		TimePosition:  time.Unix(f.TimePosition, 0),
 		Latitude:      f.Latitude,
 		Longitude:     f.Longitude,
 		Altitude:      f.Altitude,
@@ -112,7 +105,7 @@ func toStr(v interface{}) string {
 		return ""
 	}
 	s := fmt.Sprintf("%v", v)
-	fmt.Printf("❌ toStr: %s", s)
+	// fmt.Printf("❌ toStr: %s", s)
 	return s
 }
 
@@ -123,7 +116,7 @@ func toInt64(v interface{}) int64 {
 	if f, ok := v.(float64); ok {
 		return int64(f)
 	}
-	fmt.Printf("❌ toInt64: unexpected type %T", v)
+	// fmt.Printf("❌ toInt64: unexpected type %T", v)
 	return 0
 }
 
@@ -134,7 +127,7 @@ func toFloat64(v interface{}) float64 {
 	if f, ok := v.(float64); ok {
 		return f
 	}
-	fmt.Printf("❌ toFloat64: unexpected type %T", v)
+	// fmt.Printf("❌ toFloat64: unexpected type %T", v)
 	return 0
 }
 
@@ -145,6 +138,6 @@ func toBool(v interface{}) bool {
 	if b, ok := v.(bool); ok {
 		return b
 	}
-	fmt.Printf("❌ toBool: unexpected type %T", v)
+	// fmt.Printf("❌ toBool: unexpected type %T", v)
 	return false
 }

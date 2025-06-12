@@ -54,3 +54,30 @@ func TestDBConnection() error {
 	}
 	return err
 }
+
+func Migrate() error {
+	query := `
+	CREATE TABLE IF NOT EXISTS flights (
+		id SERIAL PRIMARY KEY,
+		icao24 TEXT,
+		callsign TEXT,
+		origin_country TEXT,
+		time_position TIMESTAMP,
+		lat DOUBLE PRECISION,
+		lng DOUBLE PRECISION,
+		altitude DOUBLE PRECISION,
+		heading DOUBLE PRECISION,
+		created_at TIMESTAMPTZ DEFAULT now()
+	)`
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := DB.Exec(ctx, query)
+	if err != nil {
+		fmt.Printf("❌ Migration failed: %v", err)
+		return err
+	}
+
+	fmt.Println("✅ Schema migrated (flights table ensured)")
+	return nil
+}
