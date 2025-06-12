@@ -126,7 +126,41 @@ func main() {
 			"letters":  letters,
 		})
 	})
+
+	r.GET("/api/path/:callsign", func(c *gin.Context) {
+		callsign := c.Param("callsign")
+		fmt.Printf("📥 Received path request for callsign: %s\n", callsign)
 	
+		query := `
+		SELECT callsign, lat, lng, altitude, heading, created_at
+		FROM flights
+		WHERE TRIM(callsign) = $1
+		ORDER BY created_at ASC
+		`
+		fmt.Println("🔍 Executing path query...")
+	
+		rows, err := db.DB.Query(context.Background(), query, callsign)
+		if err != nil {
+			fmt.Printf("❌ DB query error: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "DB query failed"})
+			return
+		}
+		defer rows.Close()
+	
+		var path []models.Point
+		for rows.Next() {
+			var p models.Point
+			if err := rows.Scan(&p.Callsign, &p.Lat, &p.Lng, &p.Altitude, &p.Heading, &p.Timestamp); err != nil {
+				fmt.Printf("⚠️ Row scan error: %v\n", err)
+				continue
+			}
+			fmt.Printf("➡️ Appending point: %+v\n", p)
+			path = append(path, p)
+		}
+	
+		fmt.Printf("✅ Total points collected: %d\n", len(path))
+		c.JSON(http.StatusOK, path)
+	})
 
 	r.Run(":80")
 }

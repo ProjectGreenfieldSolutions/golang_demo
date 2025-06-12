@@ -2,6 +2,15 @@ package models
 
 import "time"
 
+type Point struct {
+	Callsign      string  `json:"callsign"`
+	Lat       float64   `json:"lat"`
+	Lng       float64   `json:"lng"`
+	Heading   float64   `json:"heading"`
+	Altitude  float64   `json:"altitude"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
 type OpenSkyFlight struct {
 	ICAO24        string  `json:"icao24"`
 	Callsign      string  `json:"callsign"`

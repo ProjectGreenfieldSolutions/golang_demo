@@ -36,7 +36,7 @@
             </thead>
             <tbody>
             {{ range .flights }}
-                <tr>
+                <tr class="flight-row" data-callsign="{{ .Callsign }}">
                     <td>{{ .Callsign }}</td>
                     <td>{{ .OriginCountry }}</td>
                     <td>{{ printf "%.0f" .Altitude }}</td>
@@ -97,6 +97,8 @@ flights.forEach(f => {
     <strong>${f.callsign || "Unknown"}</strong><br/>
     Altitude: ${f.altitude} m<br/>
     Heading: ${f.heading}&deg;<br/>
+    Longitude: ${f.lat}<br/>
+    Latitutde: ${f.lng}<br/>
     Country: ${f.origin}
   `);
 
@@ -118,6 +120,32 @@ function applyRotations() {
   });
 }
 
+let currentLayerGroup = null;
+
+function drawFetchedPath(callsign, points) {
+  console.log("Drawing fetched path for", callsign, points);
+  if (!Array.isArray(points) || points.length < 2) {
+    console.log("⚠️ Need at least 2 points");
+    return;
+  }
+
+  if (currentLayerGroup) map.removeLayer(currentLayerGroup);
+  const latlngs = points.map(p => [p.lat, p.lng]);
+  const polyline = L.polyline(latlngs, { color: 'red', weight: 3 });
+  const markers = points.map(p =>
+    L.circleMarker([p.lat, p.lng], { radius: 5, color: 'blue' }).bindPopup(`
+      <strong>${p.callsign || "Unknown"}</strong><br/>
+      Altitude: ${p.altitude} m<br/>
+      Heading: ${p.heading}&deg;<br/>
+      Longitude: ${p.lat}<br/>
+      Latitutde: ${p.lng}<br/>
+    `)
+  );
+
+  currentLayerGroup = L.layerGroup([polyline, ...markers]).addTo(map);
+  map.fitBounds(polyline.getBounds());
+}
+
 // Re-apply rotation on map events
 map.on('zoomend moveend layeradd', applyRotations);
 
@@ -125,6 +153,35 @@ map.on('zoomend moveend layeradd', applyRotations);
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(applyRotations, 50);
 });
+
+document.querySelectorAll('.flight-row').forEach(row => {
+  row.addEventListener('click', () => {
+    // Remove highlight from all rows
+    document.querySelectorAll('.flight-row.selected-row').forEach(r => {
+      r.classList.remove('selected-row');
+    });
+
+    // Highlight this row
+    row.classList.add('selected-row');
+
+    const cs = row.getAttribute('data-callsign').trim();
+    console.log("→ Row clicked:", cs);
+
+    fetch(`/api/path/${encodeURIComponent(cs)}`)
+      .then(r => {
+        console.log("Status code:", r.status);
+        return r.json();
+      })
+      .then(points => {
+        console.log("Fetched points array:", points);
+        drawFetchedPath(cs, points);
+      })
+      .catch(err => console.error("❌ Fetch error:", err));
+  });
+});
+
+
+
 </script>
 
 </html>
