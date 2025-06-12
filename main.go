@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/ProjectGreenfieldSolutions/golang_demo/db"
 	"github.com/ProjectGreenfieldSolutions/golang_demo/models"
+	"github.com/jackc/pgx/v5"
 	"github.com/gin-gonic/gin"
 	"fmt"
 	"net/http"
@@ -45,27 +46,44 @@ func main() {
 
 	// Home route
 	r.GET("/", func(c *gin.Context) {
-		page := strings.ToUpper(c.DefaultQuery("page", "A"))
-		if len(page) != 1 || page[0] < 'A' || page[0] > 'Z' {
-			c.String(http.StatusBadRequest, "invalid page, must be A–Z")
-			return
-		}
-		letter := page + "%"
-	
+		page := strings.ToUpper(c.Query("page"))
+		letter := ""
 		since := time.Now().Add(-1 * time.Hour)
-	
-		query := `
-		SELECT DISTINCT ON (callsign) id, icao24, callsign, origin_country,
-			   time_position, lat, lng, altitude, heading, created_at
-		FROM flights
-		WHERE time_position >= $1
-		  AND callsign ILIKE $2
-		ORDER BY callsign, time_position DESC
-		`
-	
-		rows, err := db.DB.Query(context.Background(), query, since, letter)
-		if err != nil {
-			fmt.Printf("❌ Error querying flights: %v\n", err)
+		tabletitlemessage := ""
+		alphabet := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+		letters := make([]int, len(alphabet))
+
+		// Move these out to "global" of this function
+		var (
+			rows      pgx.Rows
+			query_err  error
+			flights []models.Flight
+		)
+
+		if page != "" {
+			letter = page + "%"
+			query := `
+			SELECT DISTINCT ON (callsign) id, icao24, callsign, origin_country,
+				time_position, lat, lng, altitude, heading, created_at
+			FROM flights
+			WHERE time_position >= $1
+		  		AND callsign ILIKE $2
+			ORDER BY callsign, time_position DESC
+			`
+			rows, query_err = db.DB.Query(context.Background(), query, since, letter)
+		} else {
+			query := `
+			SELECT DISTINCT ON (callsign) id, icao24, callsign, origin_country,
+				time_position, lat, lng, altitude, heading, created_at
+			FROM flights
+			WHERE time_position >= $1
+			ORDER BY callsign, time_position DESC
+			`
+			rows, query_err = db.DB.Query(context.Background(), query, since)
+		}
+
+		if query_err != nil {
+			fmt.Printf("❌ Error querying flights: %v\n", query_err)
 			c.HTML(http.StatusInternalServerError, "index.html", gin.H{
 				"title":   "Flight Tracker",
 				"message": "Failed to load stored flights",
@@ -73,9 +91,9 @@ func main() {
 			})
 			return
 		}
+
 		defer rows.Close()
 	
-		var flights []models.Flight
 		for rows.Next() {
 			var f models.Flight
 			err := rows.Scan(
@@ -88,16 +106,20 @@ func main() {
 			}
 		}
 
-		alphabet := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-		letters := make([]int, len(alphabet))
 		for i := range letters {
 			letters[i] = i
 		}
 		
+		if page != "" {
+			tabletitlemessage = fmt.Sprintf("Displaying %d flights that start with the letter %s", len(flights), page) 
+		} else {
+			tabletitlemessage = fmt.Sprintf("Displaying ALL %d flights", len(flights)) 
+		}
+
 		c.HTML(http.StatusOK, "index.html", gin.H{
 			"title":    "Flight Tracker",
 			"message":  fmt.Sprintf("Flights around Detroit since (%s)", since.Format("Jan 2, 3:04PM")),
-			"tabletitle": fmt.Sprintf("Displaying %d flights that start with the letter %s", len(flights), page),
+			"tabletitle": tabletitlemessage,
 			"flights":  flights,
 			"page":     string(page),
 			"alphabet": alphabet,
