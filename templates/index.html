@@ -13,9 +13,14 @@
         <h1>{{ .message }}</h1>
 <button class="toggle-button" onclick="toggleDarkMode()">Toggle Dark Mode</button>
     </div>
+    <div class="pagination">
+      {{range $i, $l := .letters}}
+        {{ $c := printf "%c" (index $.alphabet $i) }}
+        <a href="/?page={{$c}}" class="{{if eq $.page $c}}active{{end}}">{{$c}}</a>
+      {{end}}
+    </div>
     <div class="flights-container">
-        <h1>Top 20 Flights around the Detriot area</h1>
-	<p>Due to Opensky's API credit system, I've removed auto-refreshing to a toggle button to perform the API calls.</p>
+        <h1>{{ .tabletitle }}</h1>
         <table>
             <thead>
                 <tr>

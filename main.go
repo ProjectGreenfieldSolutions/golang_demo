@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"github.com/joho/godotenv"
-	"strconv"
 	"time"
+	"strings"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 
 	// Load HTML templates
 	r.LoadHTMLGlob("templates/*")
-
+	
 	// Serve static files
 	r.Static("/static", "./static")
 
@@ -45,17 +45,25 @@ func main() {
 
 	// Home route
 	r.GET("/", func(c *gin.Context) {
+		page := strings.ToUpper(c.DefaultQuery("page", "A"))
+		if len(page) != 1 || page[0] < 'A' || page[0] > 'Z' {
+			c.String(http.StatusBadRequest, "invalid page, must be A–Z")
+			return
+		}
+		letter := page + "%"
+	
 		since := time.Now().Add(-1 * time.Hour)
 	
 		query := `
-		SELECT DISTINCT ON (callsign) id, icao24, callsign, origin_country, time_position,
-			   lat, lng, altitude, heading, created_at
+		SELECT DISTINCT ON (callsign) id, icao24, callsign, origin_country,
+			   time_position, lat, lng, altitude, heading, created_at
 		FROM flights
 		WHERE time_position >= $1
+		  AND callsign ILIKE $2
 		ORDER BY callsign, time_position DESC
 		`
 	
-		rows, err := db.DB.Query(context.Background(), query, since)
+		rows, err := db.DB.Query(context.Background(), query, since, letter)
 		if err != nil {
 			fmt.Printf("❌ Error querying flights: %v\n", err)
 			c.HTML(http.StatusInternalServerError, "index.html", gin.H{
@@ -79,13 +87,24 @@ func main() {
 				flights = append(flights, f)
 			}
 		}
-	
+
+		alphabet := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+		letters := make([]int, len(alphabet))
+		for i := range letters {
+			letters[i] = i
+		}
+		
 		c.HTML(http.StatusOK, "index.html", gin.H{
-			"title":   "Flight Tracker",
-			"message": "Live flights (past 60 minutes)",
-			"flights": flights,
+			"title":    "Flight Tracker",
+			"message":  fmt.Sprintf("Flights around Detroit since (%s)", since.Format("Jan 2, 3:04PM")),
+			"tabletitle": fmt.Sprintf("Displaying %d flights that start with the letter %s", len(flights), page),
+			"flights":  flights,
+			"page":     string(page),
+			"alphabet": alphabet,
+			"letters":  letters,
 		})
 	})
+	
 
 	r.Run(":80")
 }

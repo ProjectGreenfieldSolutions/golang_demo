@@ -35,13 +35,6 @@ button:hover {
     animation: pulse 1s infinite alternate;
 }
 
-.plane-emoji {
-  transform-origin: center center; 
-  display: inline-block;
-  text-align: center;
-  font-size: 1.2rem;
-}
-
 /* Shared card-like containers */
 .container,
 .flights-container {
@@ -152,3 +145,41 @@ body.dark-mode button {
     color: #fff;
 }
 
+/* Flight tracking controls */
+.pagination {
+    text-align: center;
+    margin: 1em auto;
+    padding: 0px 1em;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.pagination a {
+    padding: 10px;
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+.dark-mode .pagination a {
+    color: #fff;
+}
+
+.pagination a.active {
+    font-weight: bold;
+    border-bottom: 2px solid #333;
+    background-color: #333;
+    color: white;
+}
+
+.dark-mode .pagination a.active {
+    background-color: white;
+    color: #333;
+}
+
+/* Map related stuff */
+.plane-emoji {
+  transform-origin: center center; 
+  display: inline-block;
+  text-align: center;
+  font-size: 1.2rem;
+}
