@@ -9,10 +9,9 @@ import (
 	"io"
 	"golang.org/x/oauth2/clientcredentials"
 )
-var clientID = "greenfieldsolutions-api-client"
-var clientSecret = "2VFU8aStjx7xa1yfUaDD299hGN64t2vd"
-
-const OpenSkyURL = "https://opensky-network.org/api/states/all?lamin=40.0&lamax=44.5&lomin=-85.5&lomax=-80.5"
+const clientID := os.Getenv("OPEN_SKY_CLIENT_ID")
+const clientSecret := os.Getenv("OPEN_SKY_CLIENT_SECRET") 
+const OpenSkyURL := os.Getenv("OPEN_SKY_COORDINATES")
 
 type StateVectorResponse struct {
 	Time   int64           `json:"time"`
