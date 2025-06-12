@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
-    <div class="container">
+    <div id="top-of-page" class="container">
         <h1>{{ .message }}</h1>
 <button class="toggle-button" onclick="toggleDarkMode()">Toggle Dark Mode</button>
     </div>
@@ -21,6 +21,8 @@
     </div>
     <div class="flights-container">
         <h1>{{ .tabletitle }}</h1>
+        <button onclick="location.hash='#map';">Move to map</button>
+        
         <table>
             <thead>
                 <tr>
@@ -45,6 +47,7 @@
         </table>
 	<button onclick="window.location.reload()">Refresh Flight information</button>
 	<div id="map" style="height: 500px; max-width: 800px; margin: 2em auto;"></div>
+  <button onclick="location.hash='#top-of-page';">Move to top of page</button>
     </div>
 </body>
 <script>
