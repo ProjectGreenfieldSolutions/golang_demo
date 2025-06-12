@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
+    <div id="popup" style="display: none;" class="popup-error"></div>
     <div id="top-of-page" class="container">
         <h1>{{ .message }}</h1>
 <button class="toggle-button" onclick="toggleDarkMode()">Toggle Dark Mode</button>
@@ -22,7 +23,7 @@
     </div>
     <div class="flights-container">
         <h1>{{ .tabletitle }}</h1>
-        <button onclick="location.hash='#map';">Move to map</button>
+        <button onclick="scrollToMap()">Move to map</button>
         
         <table>
             <thead>
@@ -47,11 +48,13 @@
             </tbody>
         </table>
 	<button onclick="window.location.reload()">Refresh Flight information</button>
-  <button onclick="location.hash='#top-of-page';">Move to top of page</button>
+  <button onclick="scrollToTop()">Move to top of page</button>
 	<div id="map" style="height: 500px; max-width: 800px; margin: 2em auto;"></div>
     </div>
 </body>
 <script>
+let plottedPathLayerGroup = null;
+
 function toggleDarkMode() {
     const isDark = document.body.classList.toggle("dark-mode");
     localStorage.setItem("theme", isDark ? "dark" : "light");
@@ -102,6 +105,12 @@ flights.forEach(f => {
     Country: ${f.origin}
   `);
 
+  marker.on('click', () => {
+    const cs = f.callsign.trim();
+    console.log("✈️ Plane icon clicked:", cs);
+    fetchAndDrawPath(cs);
+  });
+
   // Wait for DOM to be ready
   marker.on('add', () => {
     const el = marker.getElement()?.querySelector('.plane-emoji');
@@ -120,8 +129,6 @@ function applyRotations() {
   });
 }
 
-let currentLayerGroup = null;
-
 function drawFetchedPath(callsign, points) {
   console.log("Drawing fetched path for", callsign, points);
   if (!Array.isArray(points) || points.length < 2) {
@@ -129,7 +136,7 @@ function drawFetchedPath(callsign, points) {
     return;
   }
 
-  if (currentLayerGroup) map.removeLayer(currentLayerGroup);
+  if (plottedPathLayerGroup) map.removeLayer(plottedPathLayerGroup);
   const latlngs = points.map(p => [p.lat, p.lng]);
   const polyline = L.polyline(latlngs, { color: 'red', weight: 3 });
   const markers = points.map(p =>
@@ -142,7 +149,7 @@ function drawFetchedPath(callsign, points) {
     `)
   );
 
-  currentLayerGroup = L.layerGroup([polyline, ...markers]).addTo(map);
+  plottedPathLayerGroup = L.layerGroup([polyline, ...markers]).addTo(map);
   map.fitBounds(polyline.getBounds());
 }
 
@@ -165,22 +172,68 @@ document.querySelectorAll('.flight-row').forEach(row => {
     row.classList.add('selected-row');
 
     const cs = row.getAttribute('data-callsign').trim();
-    console.log("→ Row clicked:", cs);
+    console.log("Row clicked:", cs);
 
-    fetch(`/api/path/${encodeURIComponent(cs)}`)
-      .then(r => {
-        console.log("Status code:", r.status);
-        return r.json();
-      })
-      .then(points => {
-        console.log("Fetched points array:", points);
-        drawFetchedPath(cs, points);
-      })
-      .catch(err => console.error("❌ Fetch error:", err));
+    fetchAndDrawPath(cs);
   });
 });
 
+function fetchAndDrawPath(callsign) {
+  console.log("Fetching path for:", callsign);
+  
+  fetch(`/api/path/${encodeURIComponent(callsign)}`)
+    .then(r => {
+      console.log("Status code:", r.status);
+      return r.json();
+    })
+    .then(points => {
+      if (points.length > 1) {
+        console.log("Fetched points array:", points);
+        drawFetchedPath(callsign, points);
+      } else if (points.length === 1) {
+        console.warn("Only one point, cannot draw a flight path:", points[0]);
+        showErrorPopup("Only one point on map found with this callsign = " + callsign + " unable to draw anything on the map.\nClearing the existing plotted paths.");
+        clearPlottedPaths()
+      } else {
+        console.warn("No data found for this callsign:", callsign);
+        showErrorPopup("No data found for callsign = " + callsign);
+        clearPlottedPaths()
+      }
+    })
+    .catch(err => {
+      console.error("❌ Fetch error:", err);
+      showErrorPopup("Error fetching flight path: " + err.message);
+    });
+}
 
+function clearPlottedPaths() {
+  if (plottedPathLayerGroup) map.removeLayer(plottedPathLayerGroup);
+  console.log("Cleared plotted path layer.");
+}
+
+function showErrorPopup(message) {
+  const popup = document.getElementById('popup');
+  popup.textContent = message;
+  popup.style.display = 'block';
+
+  setTimeout(() => {
+    popup.style.display = 'none';
+  }, 5000);
+}
+
+function scrollToTop() {
+  const topElement = document.getElementById("top-of-page");
+  if (topElement) {
+    topElement.scrollIntoView({ behavior: "smooth" });
+  }
+}
+
+function scrollToMap() {
+  const topElement = document.getElementById("map");
+  if (topElement) {
+    topElement.scrollIntoView({ behavior: "smooth" });
+  }
+}
 
 </script>
 

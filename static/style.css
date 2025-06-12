@@ -22,6 +22,21 @@ body {
     padding: 0;
 }
 
+.popup-error {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ffdddd;
+    color: #a00;
+    padding: 1em 2em;
+    border: 1px solid #a00;
+    border-radius: 8px;
+    z-index: 1000;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+
 a {
     color: inherit;
 }
@@ -62,7 +77,7 @@ button:hover {
 }
 
 .dark-mode .selected-row {
-    background-color: green;
+    background-color: darkgreen;
 }
 .flights-container table {
     width: 100%;
@@ -88,7 +103,11 @@ button:hover {
 }
 
 .flights-container tbody tr:hover {
-    background-color: #ddd;
+    background-color: lightblue;
+}
+
+.dark-mode .flights-container tbody tr:hover {
+    background-color: green;
 }
 
 .flights-container tbody tr:nth-child(odd) {
