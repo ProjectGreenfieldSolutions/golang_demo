@@ -26,7 +26,7 @@ func SaveFlightToDB(f models.Flight) error {
 		f.ICAO24,
 		f.Callsign,
 		f.OriginCountry,
-		f.TimePosition,
+		float64(f.TimePosition.Unix()),
 		f.Latitude,
 		f.Longitude,
 		f.Altitude,
