@@ -51,6 +51,15 @@
   <button onclick="scrollToTop()">Move to top of page</button>
 	<div id="map" style="height: 500px; max-width: 800px; margin: 2em auto;"></div>
     </div>
+  <div class="container">
+    <h2>Notes</h2>
+    <p>There is a dark-mode.</p>
+    <p>Database gets updated every 30 seconds.</p>
+    <p>Application currently displays the last 60 minutes of data.</p>
+    <p>If you select a ✈️ you can see the path it traveled around the Detroit area.</p>
+    <p>If you select a row from the table below, you can see the path the plane traveled around the Detroit area.</p>
+    <p>There are buttons that can scroll the page to the top & map.</p>
+  </div>
 </body>
 <script>
 let plottedPathLayerGroup = null;
@@ -124,7 +133,8 @@ function applyRotations() {
   document.querySelectorAll('.plane-emoji').forEach(el => {
     const heading = el.getAttribute('data-heading');
     if (heading !== null) {
-      el.style.transform = `rotate(${heading}deg)`;
+      // Note - Doing a tweak minus 45 degrees due to plane icon starting position
+      el.style.transform = `rotate(${heading - 45}deg)`;
     }
   });
 }
