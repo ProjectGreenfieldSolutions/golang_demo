@@ -82,7 +82,7 @@ func main() {
 	
 		// Get the locale time
 		loc, _ := time.LoadLocation("America/Detroit")
-		formattedTime := time.Now().In(loc).Format("Jan 2, 3:04PM MST")
+		formattedTime := time.Now().Add(-since).In(loc).Format("Jan 2, 3:04PM MST")
 
 		c.HTML(http.StatusOK, "index.html", gin.H{
 			"title":      "Flight Tracker",
