@@ -51,7 +51,7 @@ func main() {
 	// Serve static files
 	r.Static("/static", "./static")
 
-	startFlightFetcher(5 * 60 * time.Second)
+	startFlightFetcher(30 * time.Second)
 
 	// Home route
 	r.GET("/", func(c *gin.Context) {
