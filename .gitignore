@@ -16,3 +16,4 @@ golang_demo
 # Air
 .air.toml
 .env
+/tmp
