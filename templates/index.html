@@ -1,57 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <title>{{ .title }}</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="icon" type="image/x-icon" href="/static/favicon.png">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- <meta http-equiv="refresh" content="8"> -->
+  <meta charset="UTF-8">
+  <title>{{ .title }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.png">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- <meta http-equiv="refresh" content="8"> -->
 </head>
+
 <body>
-    <div id="popup" style="display: none;" class="popup-error"></div>
-    <div id="top-of-page" class="container">
-        <h1>{{ .message }}</h1>
-<button class="toggle-button" onclick="toggleDarkMode()">Toggle Dark Mode</button>
-    </div>
-    <div class="pagination">
-      <a href="/" class="{{if not .page }}active{{end}}">All</a>
-      {{range $i, $l := .letters}}
-        {{ $c := printf "%c" (index $.alphabet $i) }}
-        <a href="/?page={{$c}}" class="{{if eq $.page $c}}active{{end}}">{{$c}}</a>
-      {{end}}
-    </div>
-    <div class="flights-container">
-        <h1>{{ .tabletitle }}</h1>
-        <button onclick="scrollToMap()">Move to map</button>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Callsign</th>
-                    <th>Country</th>
-                    <th>Altitude</th>
-                    <th>Lat</th>
-                    <th>Lng</th>
-                </tr>
-            </thead>
-            <tbody>
-            {{ range .flights }}
-                <tr class="flight-row" data-callsign="{{ .Callsign }}">
-                    <td>{{ .Callsign }}</td>
-                    <td>{{ .OriginCountry }}</td>
-                    <td>{{ printf "%.0f" .Altitude }}</td>
-                    <td>{{ printf "%.2f" .Latitude }}</td>
-                    <td>{{ printf "%.2f" .Longitude }}</td>
-                </tr>
-            {{ end }}
-            </tbody>
-        </table>
-	<button onclick="window.location.reload()">Refresh Flight information</button>
-  <button onclick="scrollToTop()">Move to top of page</button>
-	<div id="map" style="height: 500px; max-width: 800px; margin: 2em auto;"></div>
-    </div>
+  <div id="popup" style="display: none;" class="popup-error"></div>
+  <div id="top-of-page" class="container">
+    <h1>{{ .message }}</h1>
+    <button class="toggle-button" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+  </div>
+  <div class="pagination">
+    <a href="/" class="{{if not .page }}active{{end}}">All</a>
+    {{range $i, $l := .letters}}
+    {{ $c := printf "%c" (index $.alphabet $i) }}
+    <a href="/?page={{$c}}" class="{{if eq $.page $c}}active{{end}}">{{$c}}</a>
+    {{end}}
+  </div>
+  <div class="flights-container">
+    <h1>{{ .tabletitle }}</h1>
+    <button onclick="scrollToMap()">Move to map</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Callsign</th>
+          <th>Country</th>
+          <th>Altitude</th>
+          <th>Lat</th>
+          <th>Lng</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ range .flights }}
+        <tr class="flight-row" data-callsign="{{ .Callsign }}">
+          <td>{{ .Callsign }}</td>
+          <td>{{ .OriginCountry }}</td>
+          <td>{{ printf "%.0f" .Altitude }}</td>
+          <td>{{ printf "%.2f" .Latitude }}</td>
+          <td>{{ printf "%.2f" .Longitude }}</td>
+        </tr>
+        {{ end }}
+      </tbody>
+    </table>
+    <button onclick="window.location.reload()">Refresh Flight information</button>
+    <button onclick="scrollToTop()">Move to top of page</button>
+    <div id="map" style="height: 500px; max-width: 800px; margin: 2em auto;"></div>
+  </div>
   <div class="container">
     <h2>Notes</h2>
     <p>There is a dark-mode.</p>
@@ -62,26 +64,29 @@
     <p>There are buttons that can scroll the page to the top & map.</p>
   </div>
   <div class="container">
-    <p>As requested by the <a href="https://opensky-network.org/data/aircraft#citation-use" target="_blank">Open Sky Network</a>.</p>
+    <p>As requested by the <a href="https://opensky-network.org/data/aircraft#citation-use" target="_blank">Open Sky
+        Network</a>.</p>
     <i>Matthias Schäfer, Martin Strohmeier, Vincent Lenders, Ivan Martinovic, and Matthias Wilhelm.</i>
     <i>"Bringing Up OpenSky: A Large-scale ADS-B Sensor Network for Research".</i>
-    <i>In Proceedings of the 13th IEEE/ACM International Symposium on Information Processing in Sensor Networks (IPSN), pages 83-94, April 2014.</i>
+    <i>In Proceedings of the 13th IEEE/ACM International Symposium on Information Processing in Sensor Networks (IPSN),
+      pages 83-94, April 2014.</i>
   </div>
 </body>
 <script>
-let plottedPathLayerGroup = null;
+  let plottedPathLayerGroup = null;
 
-function toggleDarkMode() {
+  function toggleDarkMode() {
     const isDark = document.body.classList.toggle("dark-mode");
     localStorage.setItem("theme", isDark ? "dark" : "light");
-}
+  }
 
-(function () {
+  (function () {
     const saved = localStorage.getItem("theme");
     if (saved === "dark") {
-        document.body.classList.add("dark-mode");
+      document.body.classList.add("dark-mode");
     }
-})();
+  })();
+
   const map = L.map('map').fitBounds([[40.0, -85.5], [44.5, -80.5]]);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
@@ -100,19 +105,19 @@ function toggleDarkMode() {
     {{- end }}
   ];
 
-flights.forEach(f => {
-  if (!f.lat || !f.lng) return;
+  flights.forEach(f => {
+    if (!f.lat || !f.lng) return;
 
-  const icon = L.divIcon({
-    className: 'plane-icon',
-    html: `<div class="plane-emoji" data-heading="${f.heading || 0}">✈️</div>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10]
-  });
+    const icon = L.divIcon({
+      className: 'plane-icon',
+      html: `<div class="plane-emoji" data-heading="${f.heading || 0}">✈️</div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
+    });
 
-  const marker = L.marker([f.lat, f.lng], { icon }).addTo(map);
+    const marker = L.marker([f.lat, f.lng], { icon }).addTo(map);
 
-  marker.bindPopup(`
+    marker.bindPopup(`
     <strong>${f.callsign || "Unknown"}</strong><br/>
     Altitude: ${f.altitude} m<br/>
     Heading: ${f.heading}&deg;<br/>
@@ -121,137 +126,137 @@ flights.forEach(f => {
     Country: ${f.origin}
   `);
 
-  marker.on('click', () => {
-    const cs = f.callsign.trim();
-    console.log("✈️ Plane icon clicked:", cs);
-    fetchAndDrawPath(cs);
+    marker.on('click', () => {
+      const cs = f.callsign.trim();
+      console.log("✈️ Plane icon clicked:", cs);
+      fetchAndDrawPath(cs);
+    });
+
+    // Wait for DOM to be ready
+    marker.on('add', () => {
+      const el = marker.getElement()?.querySelector('.plane-emoji');
+      if (el) {
+        el.style.transform = `rotate(${f.heading || 0}deg)`;
+      }
+    });
   });
 
-  // Wait for DOM to be ready
-  marker.on('add', () => {
-    const el = marker.getElement()?.querySelector('.plane-emoji');
-    if (el) {
-      el.style.transform = `rotate(${f.heading || 0}deg)`;
-    }
-  });
-});
-
-function applyRotations() {
-  document.querySelectorAll('.plane-emoji').forEach(el => {
-    const heading = el.getAttribute('data-heading');
-    if (heading !== null) {
-      // Note - Doing a tweak minus 45 degrees due to plane icon starting position
-      el.style.transform = `rotate(${heading - 45}deg)`;
-    }
-  });
-}
-
-function drawFetchedPath(callsign, points) {
-  console.log("Drawing fetched path for", callsign, points);
-  if (!Array.isArray(points) || points.length < 2) {
-    console.log("⚠️ Need at least 2 points");
-    return;
+  function applyRotations() {
+    document.querySelectorAll('.plane-emoji').forEach(el => {
+      const heading = el.getAttribute('data-heading');
+      if (heading !== null) {
+        // Note - Doing a tweak minus 45 degrees due to plane icon starting position
+        el.style.transform = `rotate(${heading - 45}deg)`;
+      }
+    });
   }
 
-  if (plottedPathLayerGroup) map.removeLayer(plottedPathLayerGroup);
-  const latlngs = points.map(p => [p.lat, p.lng]);
-  const polyline = L.polyline(latlngs, { color: 'red', weight: 3 });
-  const markers = points.map(p =>
-    L.circleMarker([p.lat, p.lng], { radius: 5, color: 'blue' }).bindPopup(`
+  function drawFetchedPath(callsign, points) {
+    console.log("Drawing fetched path for", callsign, points);
+    if (!Array.isArray(points) || points.length < 2) {
+      console.log("⚠️ Need at least 2 points");
+      return;
+    }
+
+    if (plottedPathLayerGroup) map.removeLayer(plottedPathLayerGroup);
+    const latlngs = points.map(p => [p.lat, p.lng]);
+    const polyline = L.polyline(latlngs, { color: 'red', weight: 3 });
+    const markers = points.map(p =>
+      L.circleMarker([p.lat, p.lng], { radius: 5, color: 'blue' }).bindPopup(`
       <strong>${p.callsign || "Unknown"}</strong><br/>
       Altitude: ${p.altitude} m<br/>
       Heading: ${p.heading}&deg;<br/>
       Longitude: ${p.lat}<br/>
       Latitutde: ${p.lng}<br/>
     `)
-  );
+    );
 
-  plottedPathLayerGroup = L.layerGroup([polyline, ...markers]).addTo(map);
-  map.fitBounds(polyline.getBounds());
-}
+    plottedPathLayerGroup = L.layerGroup([polyline, ...markers]).addTo(map);
+    map.fitBounds(polyline.getBounds());
+  }
 
-// Re-apply rotation on map events
-map.on('zoomend moveend layeradd', applyRotations);
+  // Re-apply rotation on map events
+  map.on('zoomend moveend layeradd', applyRotations);
 
-// Initial call (small delay to ensure DOM ready)
-document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(applyRotations, 50);
-});
-
-document.querySelectorAll('.flight-row').forEach(row => {
-  row.addEventListener('click', () => {
-    // Remove highlight from all rows
-    document.querySelectorAll('.flight-row.selected-row').forEach(r => {
-      r.classList.remove('selected-row');
-    });
-
-    // Highlight this row
-    row.classList.add('selected-row');
-
-    const cs = row.getAttribute('data-callsign').trim();
-    console.log("Row clicked:", cs);
-
-    fetchAndDrawPath(cs);
+  // Initial call (small delay to ensure DOM ready)
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(applyRotations, 50);
   });
-});
 
-function fetchAndDrawPath(callsign) {
-  console.log("Fetching path for:", callsign);
-  
-  fetch(`/api/path/${encodeURIComponent(callsign)}`)
-    .then(r => {
-      console.log("Status code:", r.status);
-      return r.json();
-    })
-    .then(points => {
-      if (points.length > 1) {
-        console.log("Fetched points array:", points);
-        drawFetchedPath(callsign, points);
-        scrollToMap();
-      } else if (points.length === 1) {
-        console.warn("Only one point, cannot draw a flight path:", points[0]);
-        showErrorPopup("Only one point on map found with this callsign = " + callsign + " unable to draw anything on the map.\nClearing the existing plotted paths.");
-        clearPlottedPaths()
-      } else {
-        console.warn("No data found for this callsign:", callsign);
-        showErrorPopup("No data found for callsign = " + callsign);
-        clearPlottedPaths()
-      }
-    })
-    .catch(err => {
-      console.error("❌ Fetch error:", err);
-      showErrorPopup("Error fetching flight path: " + err.message);
+  document.querySelectorAll('.flight-row').forEach(row => {
+    row.addEventListener('click', () => {
+      // Remove highlight from all rows
+      document.querySelectorAll('.flight-row.selected-row').forEach(r => {
+        r.classList.remove('selected-row');
+      });
+
+      // Highlight this row
+      row.classList.add('selected-row');
+
+      const cs = row.getAttribute('data-callsign').trim();
+      console.log("Row clicked:", cs);
+
+      fetchAndDrawPath(cs);
     });
-}
+  });
 
-function clearPlottedPaths() {
-  if (plottedPathLayerGroup) map.removeLayer(plottedPathLayerGroup);
-  console.log("Cleared plotted path layer.");
-}
+  function fetchAndDrawPath(callsign) {
+    console.log("Fetching path for:", callsign);
 
-function showErrorPopup(message) {
-  const popup = document.getElementById('popup');
-  popup.textContent = message;
-  popup.style.display = 'block';
-
-  setTimeout(() => {
-    popup.style.display = 'none';
-  }, 5000);
-}
-
-function scrollToTop() {
-  const topElement = document.getElementById("top-of-page");
-  if (topElement) {
-    topElement.scrollIntoView({ behavior: "smooth" });
+    fetch(`/api/path/${encodeURIComponent(callsign)}`)
+      .then(r => {
+        console.log("Status code:", r.status);
+        return r.json();
+      })
+      .then(points => {
+        if (points.length > 1) {
+          console.log("Fetched points array:", points);
+          drawFetchedPath(callsign, points);
+          scrollToMap();
+        } else if (points.length === 1) {
+          console.warn("Only one point, cannot draw a flight path:", points[0]);
+          showErrorPopup("Only one point on map found with this callsign = " + callsign + " unable to draw anything on the map.\nClearing the existing plotted paths.");
+          clearPlottedPaths()
+        } else {
+          console.warn("No data found for this callsign:", callsign);
+          showErrorPopup("No data found for callsign = " + callsign);
+          clearPlottedPaths()
+        }
+      })
+      .catch(err => {
+        console.error("❌ Fetch error:", err);
+        showErrorPopup("Error fetching flight path: " + err.message);
+      });
   }
-}
 
-function scrollToMap() {
-  const topElement = document.getElementById("map");
-  if (topElement) {
-    topElement.scrollIntoView({ behavior: "smooth" });
+  function clearPlottedPaths() {
+    if (plottedPathLayerGroup) map.removeLayer(plottedPathLayerGroup);
+    console.log("Cleared plotted path layer.");
   }
-}
+
+  function showErrorPopup(message) {
+    const popup = document.getElementById('popup');
+    popup.textContent = message;
+    popup.style.display = 'block';
+
+    setTimeout(() => {
+      popup.style.display = 'none';
+    }, 5000);
+  }
+
+  function scrollToTop() {
+    const topElement = document.getElementById("top-of-page");
+    if (topElement) {
+      topElement.scrollIntoView({ behavior: "smooth" });
+    }
+  }
+
+  function scrollToMap() {
+    const topElement = document.getElementById("map");
+    if (topElement) {
+      topElement.scrollIntoView({ behavior: "smooth" });
+    }
+  }
 
 </script>
 
