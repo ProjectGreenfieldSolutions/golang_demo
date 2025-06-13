@@ -56,46 +56,11 @@ func main() {
 	// Home route
 	r.GET("/", func(c *gin.Context) {
 		page := strings.ToUpper(c.Query("page"))
-		letter := ""
-		since := time.Now().Add(-1 * time.Hour)
-		within_thirty_seconds := time.Now().Add(-1 * time.Second * 30)
-		tabletitlemessage := ""
-		alphabet := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-		letters := make([]int, len(alphabet))
-
-		// Move these out to "global" of this function
-		var (
-			rows      pgx.Rows
-			query_err  error
-			flights []models.Flight
-		)
-
-		if page != "" {
-			letter = page + "%"
-			query := `
-			SELECT DISTINCT ON (callsign) id, icao24, callsign, origin_country,
-				time_position, lat, lng, altitude, heading, created_at
-			FROM flights
-			WHERE time_position >= $1
-		  		AND callsign ILIKE $2
-				AND created_at >= $3 
-			ORDER BY callsign, time_position DESC
-			`
-			rows, query_err = db.DB.Query(context.Background(), query, since, letter, within_thirty_seconds)
-		} else {
-			query := `
-			SELECT DISTINCT ON (callsign) id, icao24, callsign, origin_country,
-				time_position, lat, lng, altitude, heading, created_at
-			FROM flights
-			WHERE time_position >= $1
-				AND created_at >= $2 
-			ORDER BY callsign, time_position DESC
-			`
-			rows, query_err = db.DB.Query(context.Background(), query, since, within_thirty_seconds)
-		}
-
-		if query_err != nil {
-			fmt.Printf("❌ Error querying flights: %v\n", query_err)
+		since := time.Hour
+	
+		flights, err := FetchRecentFlights(since, page)
+		if err != nil {
+			fmt.Printf("❌ Error querying flights: %v\n", err)
 			c.HTML(http.StatusInternalServerError, "index.html", gin.H{
 				"title":   "Flight Tracker",
 				"message": "Failed to load stored flights",
@@ -103,40 +68,37 @@ func main() {
 			})
 			return
 		}
-
-		defer rows.Close()
 	
-		for rows.Next() {
-			var f models.Flight
-			err := rows.Scan(
-				&f.ID, &f.ICAO24, &f.Callsign, &f.OriginCountry,
-				&f.TimePosition, &f.Latitude, &f.Longitude,
-				&f.Altitude, &f.Heading, &f.CreatedAt,
-			)
-			if err == nil {
-				flights = append(flights, f)
-			}
+		tabletitle := fmt.Sprintf("Displaying ALL %d flights", len(flights))
+		if page != "" {
+			tabletitle = fmt.Sprintf("Displaying %d flights that start with the letter %s", len(flights), page)
 		}
-
+	
+		alphabet := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+		letters := make([]int, len(alphabet))
 		for i := range letters {
 			letters[i] = i
 		}
-		
-		if page != "" {
-			tabletitlemessage = fmt.Sprintf("Displaying %d flights that start with the letter %s", len(flights), page) 
-		} else {
-			tabletitlemessage = fmt.Sprintf("Displaying ALL %d flights", len(flights)) 
-		}
-
+	
 		c.HTML(http.StatusOK, "index.html", gin.H{
-			"title":    "Flight Tracker",
-			"message":  fmt.Sprintf("Flights around Detroit since (%s)", since.Format("Jan 2, 3:04PM")),
-			"tabletitle": tabletitlemessage,
-			"flights":  flights,
-			"page":     string(page),
-			"alphabet": alphabet,
-			"letters":  letters,
+			"title":      "Flight Tracker",
+			"message":    fmt.Sprintf("Flights around Detroit since (%s)", time.Now().Add(-since).Format("Jan 2, 3:04PM")),
+			"tabletitle": tabletitle,
+			"flights":    flights,
+			"page":       page,
+			"alphabet":   alphabet,
+			"letters":    letters,
 		})
+	})
+
+	r.GET("/api/flights", func(c *gin.Context) {
+		page := strings.ToUpper(c.Query("page"))
+		flights, err := FetchRecentFlights(1*time.Hour, page)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve flights"})
+			return
+		}
+		c.JSON(http.StatusOK, flights)
 	})
 
 	r.GET("/api/path/:callsign", func(c *gin.Context) {
@@ -147,11 +109,15 @@ func main() {
 		SELECT callsign, lat, lng, altitude, heading, created_at
 		FROM flights
 		WHERE TRIM(callsign) = $1
+			AND created_at >= $2
 		ORDER BY created_at ASC
 		`
 		fmt.Println("🔍 Executing path query...")
+
+		since := time.Hour
+		timePositionAfter := time.Now().Add(-since)
 	
-		rows, err := db.DB.Query(context.Background(), query, callsign)
+		rows, err := db.DB.Query(context.Background(), query, callsign, timePositionAfter)
 		if err != nil {
 			fmt.Printf("❌ DB query error: %v\n", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "DB query failed"})
@@ -236,4 +202,52 @@ func deleteOldFlights() error {
 	rowsDeleted := res.RowsAffected()
 	fmt.Printf("Deleted %d old flight records\n", rowsDeleted)
 	return nil
+}
+
+func FetchRecentFlights(since time.Duration, page string) ([]models.Flight, error) {
+	var (
+		rows pgx.Rows
+		err  error
+	)
+
+	createdAfter := time.Now().Add(-30 * time.Second)
+	timePositionAfter := time.Now().Add(-since)
+
+	if page != "" {
+		letter := page + "%"
+		query := `
+		SELECT DISTINCT ON (callsign) id, icao24, callsign, origin_country,
+			time_position, lat, lng, altitude, heading, created_at
+		FROM flights
+		WHERE time_position >= $1 AND callsign ILIKE $2 AND created_at >= $3
+		ORDER BY callsign, time_position DESC`
+		rows, err = db.DB.Query(context.Background(), query, timePositionAfter, letter, createdAfter)
+	} else {
+		query := `
+		SELECT DISTINCT ON (callsign) id, icao24, callsign, origin_country,
+			time_position, lat, lng, altitude, heading, created_at
+		FROM flights
+		WHERE time_position >= $1 AND created_at >= $2
+		ORDER BY callsign, time_position DESC`
+		rows, err = db.DB.Query(context.Background(), query, timePositionAfter, createdAfter)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var flights []models.Flight
+	for rows.Next() {
+		var f models.Flight
+		if scanErr := rows.Scan(
+			&f.ID, &f.ICAO24, &f.Callsign, &f.OriginCountry,
+			&f.TimePosition, &f.Latitude, &f.Longitude,
+			&f.Altitude, &f.Heading, &f.CreatedAt,
+		); scanErr == nil {
+			flights = append(flights, f)
+		}
+	}
+
+	return flights, nil
 }
