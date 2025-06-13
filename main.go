@@ -80,9 +80,13 @@ func main() {
 			letters[i] = i
 		}
 	
+		// Get the locale time
+		loc, _ := time.LoadLocation("America/Detroit")
+		formattedTime := time.Now().In(loc).Format("Jan 2, 3:04PM MST")
+
 		c.HTML(http.StatusOK, "index.html", gin.H{
 			"title":      "Flight Tracker",
-			"message":    fmt.Sprintf("Flights around Detroit since (%s)", time.Now().Add(-since).Format("Jan 2, 3:04PM")),
+			"message": 	  fmt.Sprintf("Flights around Detroit since (%s)", formattedTime),
 			"tabletitle": tabletitle,
 			"flights":    flights,
 			"page":       page,
@@ -188,7 +192,7 @@ func fetchAndStoreFlights() {
 func deleteOldFlights() error {
 	query := `
 		DELETE FROM flights
-		WHERE created_at < NOW() - INTERVAL '1 days'
+		WHERE created_at < NOW() - INTERVAL '1 hours'
 	`
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
