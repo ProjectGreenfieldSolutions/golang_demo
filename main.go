@@ -11,6 +11,7 @@ import (
 	"github.com/joho/godotenv"
 	"time"
 	"strings"
+	"os"
 )
 
 func main() {
@@ -19,6 +20,14 @@ func main() {
 	if err != nil {
 		fmt.Println("❌ Error loading .env file")
 	}
+
+	mode := os.Getenv("APP_MODE")
+
+	if mode == "" {
+		mode = gin.ReleaseMode // fallback if not set
+	} 
+
+	gin.SetMode(mode)
 
 	db.InitDB()
 
