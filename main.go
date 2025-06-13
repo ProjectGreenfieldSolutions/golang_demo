@@ -188,7 +188,7 @@ func fetchAndStoreFlights() {
 func deleteOldFlights() error {
 	query := `
 		DELETE FROM flights
-		WHERE created_at < NOW() - INTERVAL '7 days'
+		WHERE created_at < NOW() - INTERVAL '1 days'
 	`
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
