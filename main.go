@@ -58,6 +58,7 @@ func main() {
 		page := strings.ToUpper(c.Query("page"))
 		letter := ""
 		since := time.Now().Add(-1 * time.Hour)
+		within_thirty_seconds := time.Now().Add(-1 * time.Second * 30)
 		tabletitlemessage := ""
 		alphabet := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 		letters := make([]int, len(alphabet))
@@ -77,18 +78,20 @@ func main() {
 			FROM flights
 			WHERE time_position >= $1
 		  		AND callsign ILIKE $2
+				AND created_at >= $3 
 			ORDER BY callsign, time_position DESC
 			`
-			rows, query_err = db.DB.Query(context.Background(), query, since, letter)
+			rows, query_err = db.DB.Query(context.Background(), query, since, letter, within_thirty_seconds)
 		} else {
 			query := `
 			SELECT DISTINCT ON (callsign) id, icao24, callsign, origin_country,
 				time_position, lat, lng, altitude, heading, created_at
 			FROM flights
 			WHERE time_position >= $1
+				AND created_at >= $2 
 			ORDER BY callsign, time_position DESC
 			`
-			rows, query_err = db.DB.Query(context.Background(), query, since)
+			rows, query_err = db.DB.Query(context.Background(), query, since, within_thirty_seconds)
 		}
 
 		if query_err != nil {
