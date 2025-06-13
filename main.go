@@ -180,6 +180,7 @@ func startFlightFetcher(interval time.Duration) {
 			if shouldSkipFetch(interval) {
 				fmt.Println("⏳ Recent data found — skipping API fetch.")
 			} else {
+				deleteOldFlights()
 				fetchAndStoreFlights()
 			}
 			time.Sleep(interval)
@@ -213,4 +214,23 @@ func fetchAndStoreFlights() {
 		return
 	}
 	fmt.Printf("📦 Stored %d flights\n", len(stored))
+}
+
+func deleteOldFlights() error {
+	query := `
+		DELETE FROM flights
+		WHERE created_at < NOW() - INTERVAL '7 days'
+	`
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	res, err := db.DB.Exec(ctx, query)
+	if err != nil {
+		fmt.Printf("❌ Failed to delete old flights: %v\n", err)
+		return err
+	}
+
+	rowsDeleted := res.RowsAffected()
+	fmt.Printf("Deleted %d old flight records\n", rowsDeleted)
+	return nil
 }
